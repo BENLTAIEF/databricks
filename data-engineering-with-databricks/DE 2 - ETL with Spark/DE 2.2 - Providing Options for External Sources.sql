@@ -37,6 +37,15 @@
 
 -- COMMAND ----------
 
+use catalog dbrx_dev_us
+
+-- COMMAND ----------
+
+create schema if not exists dev;
+use schema dev;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
@@ -95,6 +104,23 @@ SELECT * FROM csv.`${DA.paths.sales_csv}`
 
 -- COMMAND ----------
 
+create table sales_csv(
+  order_id long,
+  email string,
+  transactions_timestamp long,
+  total_item_quantity integer,
+  purchase_revenue_in_usd double,
+  unique_items integer,
+  items string
+);
+/*
+using csv
+options(
+  header = 'true',
+  delimiter = '|'
+)
+location '${DA.paths.sales_csv}';
+
 CREATE TABLE IF NOT EXISTS sales_csv
   (order_id LONG, email STRING, transactions_timestamp LONG, total_item_quantity INTEGER, purchase_revenue_in_usd DOUBLE, unique_items INTEGER, items STRING)
 USING CSV
@@ -103,12 +129,25 @@ OPTIONS (
   delimiter = "|"
 )
 LOCATION "${DA.paths.sales_csv}"
+*/
+select count(*) from sales_csv;
 
 -- COMMAND ----------
 
 -- MAGIC %md
 -- MAGIC
 -- MAGIC **NOTE:** To create a table against an external source in PySpark, you can wrap this SQL code with the **`spark.sql()`** function.
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC df = spark.read.option('inferschema', 'True').csv(DA.paths.sales_csv, sep='|', header='True')
+-- MAGIC df.write.mode("overwrite").saveAsTable("sales_csv2")
+-- MAGIC display(df)
+
+-- COMMAND ----------
+
+select * from sales_csv2
 
 -- COMMAND ----------
 
@@ -156,7 +195,7 @@ SELECT COUNT(*) FROM sales_csv
 
 -- COMMAND ----------
 
-DESCRIBE EXTENDED sales_csv
+DESCRIBE EXTENDED sales_csv2
 
 -- COMMAND ----------
 
@@ -206,7 +245,7 @@ SELECT COUNT(*) FROM sales_csv
 
 -- COMMAND ----------
 
-REFRESH TABLE sales_csv
+refresh table sales_csv
 
 -- COMMAND ----------
 
@@ -219,7 +258,7 @@ REFRESH TABLE sales_csv
 
 -- COMMAND ----------
 
-SELECT COUNT(*) FROM sales_csv
+select count(*) from sales_csv
 
 -- COMMAND ----------
 
@@ -257,7 +296,17 @@ USING JDBC
 OPTIONS (
   url = "jdbc:sqlite:${DA.paths.ecommerce_db}",
   dbtable = "users"
+);
+
+drop table if exists users_jdbc;
+
+create table users_jdbc
+using jdbc
+options(
+  url = 'jdbc:sqlite:${DA.paths.ecommerce_db}',
+  dbtable = 'users'
 )
+
 
 -- COMMAND ----------
 
@@ -268,7 +317,7 @@ OPTIONS (
 
 -- COMMAND ----------
 
-SELECT * FROM users_jdbc
+select * from users_jdbc;
 
 -- COMMAND ----------
 
@@ -281,7 +330,7 @@ SELECT * FROM users_jdbc
 
 -- COMMAND ----------
 
-DESCRIBE EXTENDED users_jdbc
+describe extended users_jdbc;
 
 -- COMMAND ----------
 
@@ -289,6 +338,13 @@ DESCRIBE EXTENDED users_jdbc
 -- MAGIC
 -- MAGIC
 -- MAGIC Listing the contents of the specified location confirms that no data is being persisted locally.
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC import pyspark.sql.functions as F
+-- MAGIC location = spark.sql('describe extended users_jdbc').where(F.upper(F.col('col_name')) == 'LOCATION').first()["data_type"]
+-- MAGIC print(location)
 
 -- COMMAND ----------
 

@@ -103,6 +103,12 @@ SELECT * FROM json.`${DA.paths.kafka_events}/001.json`
 
 -- COMMAND ----------
 
+-- MAGIC %python
+-- MAGIC df=spark.read.json(DA.paths.kafka_events)
+-- MAGIC display(df)
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
@@ -137,6 +143,11 @@ SELECT * FROM json.`${DA.paths.kafka_events}`
 -- MAGIC This ability to directly query files and directories means that additional Spark logic can be chained to queries against files.
 -- MAGIC
 -- MAGIC When we create a view from a query against a path, we can reference this view in later queries.
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC df.createOrReplaceGlobalTempView("event_view")
 
 -- COMMAND ----------
 
@@ -183,9 +194,12 @@ SELECT * FROM events_temp_view
 
 -- COMMAND ----------
 
-WITH cte_json
-AS (SELECT * FROM json.`${DA.paths.kafka_events}`)
-SELECT * FROM cte_json
+WITH cte_json AS (
+  SELECT *, input_file_name() AS file_name
+  FROM JSON.`${DA.paths.kafka_events}`
+)
+SELECT *
+FROM cte_json
 
 -- COMMAND ----------
 
@@ -224,7 +238,17 @@ SELECT * FROM text.`${DA.paths.kafka_events}`
 
 -- COMMAND ----------
 
-SELECT * FROM binaryFile.`${DA.paths.kafka_events}`
+WITH cte_json AS (
+  SELECT *, input_file_name() AS path
+  FROM JSON.`${DA.paths.kafka_events}`
+)
+,cte_binary as (
+    SELECT * 
+    FROM binaryFile.`${DA.paths.kafka_events}`
+)
+select distinct *
+from cte_json a
+inner join cte_binary b on b.path= a.path
 
 -- COMMAND ----------
 
@@ -237,6 +261,10 @@ SELECT * FROM binaryFile.`${DA.paths.kafka_events}`
 
 -- MAGIC %python 
 -- MAGIC DA.cleanup()
+
+-- COMMAND ----------
+
+SHOW CURRENT DATABASE
 
 -- COMMAND ----------
 

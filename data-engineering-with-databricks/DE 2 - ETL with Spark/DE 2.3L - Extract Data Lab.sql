@@ -74,7 +74,28 @@
 
 -- COMMAND ----------
 
--- <FILL_IN> "${DA.paths.kafka_events}"
+use catalog dbrx_dev_us
+
+-- COMMAND ----------
+
+create schema if not exists dev
+
+-- COMMAND ----------
+
+use dev;
+
+-- COMMAND ----------
+
+CREATE TABLE IF NOT EXISTS events_json
+AS
+SELECT
+CAST(key AS binary), CAST(offset AS bigint), CAST(partition AS int), CAST(timestamp AS bigint), CAST(topic AS string), CAST(value AS binary)
+FROM
+  json.`${DA.paths.kafka_events}`
+
+-- COMMAND ----------
+
+describe extended events_json
 
 -- COMMAND ----------
 

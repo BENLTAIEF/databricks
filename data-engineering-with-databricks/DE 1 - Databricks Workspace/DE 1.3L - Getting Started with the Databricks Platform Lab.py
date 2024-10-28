@@ -114,7 +114,8 @@ print(my_name)
 
 # COMMAND ----------
 
-display(example_df)
+from pyspark.sql.functions import col
+display(example_df.select(col('id').alias('iidd')))
 
 # COMMAND ----------
 
@@ -151,7 +152,7 @@ display(example_df)
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT * FROM nyc_taxi
+# MAGIC SELECT count(*) FROM nyc_taxi
 
 # COMMAND ----------
 

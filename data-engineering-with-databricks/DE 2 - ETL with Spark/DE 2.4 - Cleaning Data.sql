@@ -61,6 +61,10 @@
 
 -- COMMAND ----------
 
+describe extended users_dirty;
+
+-- COMMAND ----------
+
 SELECT count(*), count(user_id), count(user_first_touch_timestamp), count(email), count(updated)
 FROM users_dirty
 
@@ -84,8 +88,8 @@ FROM users_dirty
 
 -- COMMAND ----------
 
-SELECT count_if(email IS NULL) FROM users_dirty;
-SELECT count(*) FROM users_dirty WHERE email IS NULL;
+select count_if(email is null) FROM users_dirty;
+select count(*) FROM users_dirty where email is null;
 
 -- COMMAND ----------
 
@@ -93,8 +97,16 @@ SELECT count(*) FROM users_dirty WHERE email IS NULL;
 -- MAGIC from pyspark.sql.functions import col
 -- MAGIC usersDF = spark.read.table("users_dirty")
 -- MAGIC
--- MAGIC usersDF.selectExpr("count_if(email IS NULL)")
+-- MAGIC usersDF.selectExpr("count_if(email IS NULL) as ")
 -- MAGIC usersDF.where(col("email").isNull()).count()
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC from pyspark.sql.functions import col
+-- MAGIC df=spark.read.table('users_dirty')
+-- MAGIC df=df.selectExpr("count_if(email is null) as col1")
+-- MAGIC display(df)
 
 -- COMMAND ----------
 
