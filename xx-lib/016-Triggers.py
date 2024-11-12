@@ -51,7 +51,3 @@ write_df=(
 
 # MAGIC %sql
 # MAGIC describe history `devcatalog`.default.trigger_availableNow
-
-# COMMAND ----------
-
-

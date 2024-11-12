@@ -19,7 +19,3 @@ spark_df=(
 # COMMAND ----------
 
 spark_df.write.format('parquet').mode('append').partitionBy('ingestionDate').save('/mnt/raw/jsonplaceholder_typicode')
-
-# COMMAND ----------
-
-

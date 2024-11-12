@@ -15,7 +15,3 @@ comment "live silver view for taxi zones"
 as
 select LocationID, Borough, Zone, service_zone
 from live.TaxiZones_BronzeLive
-
--- COMMAND ----------
-
-

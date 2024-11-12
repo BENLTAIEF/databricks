@@ -119,7 +119,3 @@ write_df=(
     .queryName('autoloader_query')
     .toTable('`devcatalog`.default.autoloader_table')
 )
-
-# COMMAND ----------
-
-

@@ -115,7 +115,3 @@ select t.Zone, t.Borough
 from live.YellowTaxis_SilverLiveIncremental y
 join live.TaxiZones_SilverLive t on y.PULocationID = t.LocationID
 group by t.Zone, t.Borough
-
--- COMMAND ----------
-
-

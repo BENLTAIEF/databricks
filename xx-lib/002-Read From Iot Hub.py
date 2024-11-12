@@ -62,7 +62,3 @@ df = (
 
 df_bronze=spark.read.table('example.Bronze').dropDuplicates(['messageId'])
 display(df_bronze)
-
-# COMMAND ----------
-
-
