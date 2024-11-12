@@ -56,6 +56,19 @@ CREATE SCHEMA IF NOT EXISTS ${da.schema_name}_default_location;
 
 -- COMMAND ----------
 
+-- MAGIC %python
+-- MAGIC print(DA.schema_name)
+
+-- COMMAND ----------
+
+create schema if not exists ${da.schema_name}_default_location;
+
+-- COMMAND ----------
+
+show databases;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
@@ -65,6 +78,10 @@ CREATE SCHEMA IF NOT EXISTS ${da.schema_name}_default_location;
 -- COMMAND ----------
 
 DESCRIBE SCHEMA EXTENDED ${da.schema_name}_default_location;
+
+-- COMMAND ----------
+
+describe schema extended ${da.schema_name}_default_location;
 
 -- COMMAND ----------
 
@@ -88,6 +105,16 @@ SELECT * FROM managed_table;
 
 -- COMMAND ----------
 
+use ${da.schema_name}_default_location;
+
+create or replace table managed_table(width int, length int, height int);
+
+insert into managed_table values (3, 2, 1);
+
+select * from managed_table;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC  
@@ -96,6 +123,10 @@ SELECT * FROM managed_table;
 -- COMMAND ----------
 
 DESCRIBE EXTENDED managed_table;
+
+-- COMMAND ----------
+
+describe extended managed_table;
 
 -- COMMAND ----------
 
@@ -117,6 +148,13 @@ DESCRIBE EXTENDED managed_table;
 
 -- COMMAND ----------
 
+-- MAGIC %python
+-- MAGIC print(spark.sql("describe detail managed_table").first().location)
+-- MAGIC display(dbutils.fs.ls(spark.sql("describe detail managed_table").first().location))
+-- MAGIC display(dbutils.fs.ls("dbfs:/user/hive/warehouse/b_benltaief_losk_da_dewd_default_location.db"))
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC  
@@ -124,7 +162,7 @@ DESCRIBE EXTENDED managed_table;
 
 -- COMMAND ----------
 
-DROP TABLE managed_table;
+DROP TABLE if exists managed_table;
 
 -- COMMAND ----------
 
@@ -139,6 +177,14 @@ DROP TABLE managed_table;
 -- MAGIC schema_default_location = spark.sql(f"DESCRIBE SCHEMA {DA.schema_name}_default_location").collect()[3].database_description_value
 -- MAGIC print(schema_default_location)
 -- MAGIC dbutils.fs.ls(schema_default_location)
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC from pyspark.sql.functions import col, upper
+-- MAGIC schema_default_location=spark.sql(f"describe schema {DA.schema_name}_default_location")
+-- MAGIC print(schema_default_location.where(upper(col("database_description_item"))=="LOCATION").first().database_description_value)
+-- MAGIC dbutils.fs.ls(schema_default_location.where(upper(col("database_description_item"))=="LOCATION").first().database_description_value)
 
 -- COMMAND ----------
 
@@ -163,6 +209,37 @@ CREATE OR REPLACE TABLE external_table LOCATION '${da.paths.working_dir}/externa
   SELECT * FROM temp_delays;
 
 SELECT * FROM external_table;
+
+-- COMMAND ----------
+
+use ${DA.schema_name}_default_location;
+
+create or replace temp view temp_delays
+using CSV
+options(
+  path="${DA.paths.datasets}/flights/departuredelays.csv",
+  header="true",
+  mode="FAILFAST"
+)
+;
+
+create or replace table external_table
+location '${DA.paths.working_dir}/external_table'
+as
+select * from temp_delays;
+
+create or replace table managed_table
+as
+select * from temp_delays;
+
+
+-- COMMAND ----------
+
+select * from managed_table;
+
+-- COMMAND ----------
+
+describe extended external_table
 
 -- COMMAND ----------
 
@@ -202,6 +279,11 @@ DROP TABLE external_table;
 
 -- COMMAND ----------
 
+-- MAGIC %python
+-- MAGIC display(spark.read.format("parquet").load("dbfs:/mnt/dbacademy-users/b-benltaief@ad-data-consulting.fr/data-engineering-with-databricks/external_table/part-00000-c8cdc87a-9455-4dd3-bdf6-9ca81c8af0e3-c000.snappy.parquet"))
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC ## Clean up
@@ -209,7 +291,7 @@ DROP TABLE external_table;
 
 -- COMMAND ----------
 
-DROP SCHEMA ${da.schema_name}_default_location CASCADE;
+DROP SCHEMA if EXISTS ${da.schema_name}_default_location CASCADE;
 
 -- COMMAND ----------
 

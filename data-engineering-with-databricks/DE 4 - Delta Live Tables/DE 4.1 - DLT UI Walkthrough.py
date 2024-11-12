@@ -201,6 +201,16 @@ DA.dlt_data_factory.load()
 
 # COMMAND ----------
 
+# MAGIC %sql
+# MAGIC use hive_metastore.b_benltaief_losk_da_dewd_pipeline_demo;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from orders_silver;
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC As we continue through the course, you can return to this notebook and use the method provided above to land new data.
 # MAGIC

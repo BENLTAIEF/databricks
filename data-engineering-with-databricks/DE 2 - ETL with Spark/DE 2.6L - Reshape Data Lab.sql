@@ -52,6 +52,19 @@
 
 -- COMMAND ----------
 
+select *
+from (select user_id, event_name from events) a
+pivot(
+  count(event_name) for event_name in(
+    "cart", "pillows", "login", "main", "careers", "guest", "faq", "down", "warranty", "finalize", 
+    "register", "shipping_info", "checkout", "mattresses", "add_item", "press", "email_coupon", 
+    "cc_info", "foam", "reviews", "original", "delivery", "premium"
+  )
+)
+;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC ## Pivot events to get event counts for each user
@@ -97,6 +110,16 @@
 
 -- COMMAND ----------
 
+create or replace temp view events_pivot as
+select *
+from (select user_id as user, event_name from events) a
+pivot(
+  count(event_name) for event_name in(
+    "cart", "pillows", "login", "main", "careers", "guest", "faq", "down", "warranty", "finalize", 
+    "register", "shipping_info", "checkout", "mattresses", "add_item", "press", "email_coupon", 
+    "cc_info", "foam", "reviews", "original", "delivery", "premium"
+  )
+);
 -- CREATE OR REPLACE TEMP VIEW events_pivot
 -- <FILL_IN>
 -- ("cart", "pillows", "login", "main", "careers", "guest", "faq", "down", "warranty", "finalize", 
@@ -119,10 +142,18 @@
 -- COMMAND ----------
 
 -- MAGIC %python
--- MAGIC # TODO
--- MAGIC # (spark.read
--- MAGIC #     <FILL_IN>
--- MAGIC #     .createOrReplaceTempView("events_pivot"))
+-- MAGIC from pyspark.sql.functions import col
+-- MAGIC (spark.read.table("events")
+-- MAGIC   .select(col("user_id").alias("user"), col("event_name"))
+-- MAGIC   .groupBy("user")
+-- MAGIC   .pivot("event_name")
+-- MAGIC   .count()
+-- MAGIC   .createOrReplaceTempView("events_pivotDF")
+-- MAGIC )
+
+-- COMMAND ----------
+
+select * from events_pivotDF
 
 -- COMMAND ----------
 
@@ -134,7 +165,7 @@
 -- COMMAND ----------
 
 -- MAGIC %python
--- MAGIC check_table_results("events_pivot", 204586, ['user', 'cart', 'pillows', 'login', 'main', 'careers', 'guest', 'faq', 'down', 'warranty', 'finalize', 'register', 'shipping_info', 'checkout', 'mattresses', 'add_item', 'press', 'email_coupon', 'cc_info', 'foam', 'reviews', 'original', 'delivery', 'premium'])
+-- MAGIC check_table_results("events_pivotDF", 204586, ['user', 'cart', 'pillows', 'login', 'main', 'careers', 'guest', 'faq', 'down', 'warranty', 'finalize', 'register', 'shipping_info', 'checkout', 'mattresses', 'add_item', 'press', 'email_coupon', 'cc_info', 'foam', 'reviews', 'original', 'delivery', 'premium'])
 
 -- COMMAND ----------
 
@@ -178,8 +209,14 @@
 
 -- COMMAND ----------
 
--- CREATE OR REPLACE TEMP VIEW clickpaths AS
--- <FILL_IN>
+select * from transactions
+
+-- COMMAND ----------
+
+CREATE OR REPLACE TEMP VIEW clickpaths AS
+select *
+FROM transactions a
+inner join events_pivot b on b.user = a.user_id;
 
 -- COMMAND ----------
 
@@ -196,10 +233,17 @@
 -- COMMAND ----------
 
 -- MAGIC %python
--- MAGIC # TODO
--- MAGIC # (spark.read
--- MAGIC #     <FILL_IN>
--- MAGIC #     .createOrReplaceTempView("clickpaths"))
+-- MAGIC transactionsDF=spark.read.table("transactions")
+-- MAGIC events_pivotDF=spark.read.table("events_pivot")
+-- MAGIC (
+-- MAGIC     transactionsDF
+-- MAGIC     .join(events_pivotDF, transactionsDF.user_id==events_pivotDF.user)
+-- MAGIC     .createOrReplaceTempView("clickpaths")
+-- MAGIC )
+
+-- COMMAND ----------
+
+select * from clickpaths
 
 -- COMMAND ----------
 

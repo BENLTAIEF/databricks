@@ -63,6 +63,12 @@ SELECT * FROM parquet.`${da.paths.datasets}/ecommerce/raw/events-historical`
 
 -- COMMAND ----------
 
+create or replace table events as
+select *
+from parquet.`${da.paths.datasets}/ecommerce/raw/events-historical`
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
@@ -71,6 +77,10 @@ SELECT * FROM parquet.`${da.paths.datasets}/ecommerce/raw/events-historical`
 -- COMMAND ----------
 
 DESCRIBE HISTORY events
+
+-- COMMAND ----------
+
+describe history events;
 
 -- COMMAND ----------
 
@@ -87,8 +97,27 @@ DESCRIBE HISTORY events
 
 -- COMMAND ----------
 
+describe history sales;
+
+-- COMMAND ----------
+
 INSERT OVERWRITE sales
 SELECT * FROM parquet.`${da.paths.datasets}/ecommerce/raw/sales-historical/`
+
+-- COMMAND ----------
+
+insert overwrite sales
+select *
+from parquet.`${DA.paths.datasets}/ecommerce/raw/sales-historical`
+
+-- COMMAND ----------
+
+select count(*)
+from parquet.`${DA.paths.datasets}/ecommerce/raw/sales-historical`
+
+-- COMMAND ----------
+
+describe history sales;
 
 -- COMMAND ----------
 
@@ -96,6 +125,10 @@ SELECT * FROM parquet.`${da.paths.datasets}/ecommerce/raw/sales-historical/`
 -- MAGIC
 -- MAGIC
 -- MAGIC Note that different metrics are displayed than a CRAS statement; the table history also records the operation differently.
+
+-- COMMAND ----------
+
+select count(*) from sales;
 
 -- COMMAND ----------
 
@@ -119,6 +152,12 @@ DESCRIBE HISTORY sales
 
 -- COMMAND ----------
 
+insert overwrite sales
+select *, current_timestamp() 
+from parquet.`${da.paths.datasets}/ecommerce/raw/sales-historical`
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
@@ -133,6 +172,16 @@ DESCRIBE HISTORY sales
 
 INSERT INTO sales
 SELECT * FROM parquet.`${da.paths.datasets}/ecommerce/raw/sales-30m`
+
+-- COMMAND ----------
+
+insert into sales
+select *
+from parquet.`${DA.paths.datasets}/ecommerce/raw/sales-30m`
+
+-- COMMAND ----------
+
+describe history sales;
 
 -- COMMAND ----------
 
@@ -170,6 +219,21 @@ FROM parquet.`${da.paths.datasets}/ecommerce/raw/users-30m`
 
 -- COMMAND ----------
 
+create or replace temp view users_update as 
+select *
+  ,current_timestamp() as updated
+from parquet.`${DA.paths.datasets}/ecommerce/raw/users-30m`
+
+-- COMMAND ----------
+
+select * from users_update;
+
+-- COMMAND ----------
+
+select * from users;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC  
@@ -193,10 +257,28 @@ WHEN NOT MATCHED THEN INSERT *
 
 -- COMMAND ----------
 
+merge into users a 
+using users_update b
+on a.user_id=b.user_id
+when matched and a.email is null and b.email is not null then 
+  update set email=b.email, updated=b.updated
+when not matched then insert *
+;
+
+-- COMMAND ----------
+
+select * from users;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
 -- MAGIC Note that we explicitly specify the behavior of this function for both the **`MATCHED`** and **`NOT MATCHED`** conditions; the example demonstrated here is just an example of logic that can be applied, rather than indicative of all **`MERGE`** behavior.
+
+-- COMMAND ----------
+
+describe history users;
 
 -- COMMAND ----------
 
@@ -215,11 +297,27 @@ WHEN NOT MATCHED THEN INSERT *
 
 -- COMMAND ----------
 
+select * from events_update;
+
+-- COMMAND ----------
+
 MERGE INTO events a
 USING events_update b
 ON a.user_id = b.user_id AND a.event_timestamp = b.event_timestamp
 WHEN NOT MATCHED AND b.traffic_source = 'email' THEN 
   INSERT *
+
+-- COMMAND ----------
+
+merge into events as a 
+using events_update as b
+on a.user_id=b.user_id and a.event_timestamp=b.event_timestamp
+when not matched and b.traffic_source='email' then insert *
+;
+
+-- COMMAND ----------
+
+describe history events ;
 
 -- COMMAND ----------
 
@@ -243,6 +341,17 @@ WHEN NOT MATCHED AND b.traffic_source = 'email' THEN
 COPY INTO sales
 FROM "${da.paths.datasets}/ecommerce/raw/sales-30m"
 FILEFORMAT = PARQUET
+
+-- COMMAND ----------
+
+copy into sales
+from "${DA.paths.datasets}/ecommerce/raw/sales-30m"
+fileformat=parquet
+;
+
+-- COMMAND ----------
+
+describe history sales;
 
 -- COMMAND ----------
 

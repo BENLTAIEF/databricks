@@ -53,10 +53,22 @@
 
 -- COMMAND ----------
 
+-- MAGIC %python
+-- MAGIC display(dbutils.fs.ls(f"{DA.paths.datasets}/ecommerce/raw/sales-historical"))
+
+-- COMMAND ----------
+
 CREATE OR REPLACE TABLE sales AS
 SELECT * FROM parquet.`${DA.paths.datasets}/ecommerce/raw/sales-historical`;
 
 DESCRIBE EXTENDED sales;
+
+-- COMMAND ----------
+
+create or replace table sales as 
+select * from parquet.`${DA.paths.datasets}/ecommerce/raw/sales-historical`;
+
+describe extended sales;
 
 -- COMMAND ----------
 
@@ -77,6 +89,12 @@ CREATE OR REPLACE TABLE sales_unparsed AS
 SELECT * FROM csv.`${da.paths.datasets}/ecommerce/raw/sales-csv`;
 
 SELECT * FROM sales_unparsed;
+
+-- COMMAND ----------
+
+create or replace table sales_unparsed as 
+select * from csv.`${DA.paths.datasets}/ecommerce/raw/sales-csv`;
+select * from sales_unparsed;
 
 -- COMMAND ----------
 
@@ -105,6 +123,40 @@ SELECT * FROM sales_delta
 
 -- COMMAND ----------
 
+create or replace temp view sales_tmp_vw
+  (order_id long, email string, transactions_timestamp long, total_item_quantity integer, purchase_revenue_in_usd double, unique_items integer, items string)
+  using csv
+  options (
+    path="${DA.paths.datasets}/ecommerce/raw/sales-csv",
+    header = "true",
+    delimiter = "|"
+  );
+select * from sales_tmp_vw;
+
+-- COMMAND ----------
+
+create or replace table sales_delta as
+select order_id
+  ,email
+  ,transactions_timestamp
+  ,total_item_quantity
+  ,purchase_revenue_in_usd
+  ,unique_items
+  ,from_json(items, 'array<struct<coupon:string, item_id:string, item_name:string, item_revenue_in_usd:double, price_in_usd:double, quantity:int>>') as items
+from sales_tmp_vw;
+
+select order_id
+  ,email
+  ,transactions_timestamp
+  ,total_item_quantity
+  ,purchase_revenue_in_usd
+  ,unique_items
+  ,explode(items)
+from sales_delta; 
+
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC  
@@ -126,6 +178,16 @@ SELECT * FROM purchases
 
 -- COMMAND ----------
 
+create or replace table purchases as
+select order_id as id, transaction_timestamp, purchase_revenue_in_usd as price
+from sales;
+
+-- COMMAND ----------
+
+describe extended purchases;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
@@ -138,6 +200,18 @@ SELECT order_id AS id, transaction_timestamp, purchase_revenue_in_usd AS price
 FROM sales;
 
 SELECT * FROM purchases_vw
+
+-- COMMAND ----------
+
+create or replace view purchases_vw as 
+select order_id as id
+  ,transaction_timestamp
+  ,purchase_revenue_in_usd as price
+from sales;
+
+select * from purchases_vw;
+
+describe extended purchases_vw;
 
 -- COMMAND ----------
 
@@ -167,6 +241,15 @@ CREATE OR REPLACE TABLE purchase_dates (
 
 -- COMMAND ----------
 
+create or replace table purchase_dates(
+  id string,
+  transaction_timestamp string,
+  price string,
+  date date generated always as(cast(cast(transaction_timestamp/1e6 as timestamp)as date)) comment "Generated based on 'trans' "
+)
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC  
@@ -184,6 +267,20 @@ USING purchases b
 ON a.id = b.id
 WHEN NOT MATCHED THEN
   INSERT *
+
+-- COMMAND ----------
+
+set spark.databricks.delta.schema.autoMerge.enabled=true;
+
+merge into purchase_dates as a
+using purchases b
+on a.id=b.id
+when not matched then insert *
+;
+
+-- COMMAND ----------
+
+select * from purchase_dates;
 
 -- COMMAND ----------
 
@@ -215,6 +312,20 @@ SELECT * FROM purchase_dates
 
 -- COMMAND ----------
 
+describe extended purchase_dates;
+
+-- COMMAND ----------
+
+-- MAGIC %python 
+-- MAGIC display(dbutils.fs.ls("dbfs:/mnt/dbacademy-users/b-benltaief@ad-data-consulting.fr/data-engineering-with-databricks/database.db/purchase_dates"))
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC display(spark.read.format("delta").load("dbfs:/mnt/dbacademy-users/b-benltaief@ad-data-consulting.fr/data-engineering-with-databricks/database.db/purchase_dates"))
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
@@ -235,6 +346,10 @@ SELECT * FROM purchase_dates
 -- COMMAND ----------
 
 ALTER TABLE purchase_dates ADD CONSTRAINT valid_date CHECK (date > '2020-01-01');
+
+-- COMMAND ----------
+
+alter table purchase_dates add constraint valid_date check(date>'2020-01-01')
 
 -- COMMAND ----------
 
@@ -290,6 +405,20 @@ SELECT * FROM users_pii;
 
 -- COMMAND ----------
 
+create or replace table users_pli comment "Contains PII"
+location "${DA.paths.working_dir}/tmp/users_pii"
+select *,
+  cast(cast(user_first_touch_timestamp/1e6 as timestamp)as date) first_touch_date,
+  current_timestamp() updated,
+  input_file_name() source_file
+from parquet.`${DA.paths.datasets}/ecommerce/raw/users-historical/`;
+
+-- COMMAND ----------
+
+describe extended users_pli;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC  
@@ -318,6 +447,16 @@ DESCRIBE EXTENDED users_pii
 
 -- COMMAND ----------
 
+-- MAGIC %python
+-- MAGIC display(dbutils.fs.ls(f"{DA.paths.working_dir}/tmp/users_pii"))
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC display(spark.read.format("delta").load(f"{DA.paths.working_dir}/tmp/users_pii"))
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
@@ -333,6 +472,19 @@ DEEP CLONE purchases
 
 -- COMMAND ----------
 
+describe extended purchases;
+
+-- COMMAND ----------
+
+create or replace table purchases_clone
+deep clone purchases;
+
+-- COMMAND ----------
+
+describe extended purchases_clone;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
@@ -344,6 +496,15 @@ DEEP CLONE purchases
 
 CREATE OR REPLACE TABLE purchases_shallow_clone
 SHALLOW CLONE purchases
+
+-- COMMAND ----------
+
+describe extended purchases_shallow_clone;
+
+-- COMMAND ----------
+
+-- MAGIC %python 
+-- MAGIC display(dbutils.fs.ls("dbfs:/mnt/dbacademy-users/b-benltaief@ad-data-consulting.fr/data-engineering-with-databricks/database.db/purchases_clone"))
 
 -- COMMAND ----------
 

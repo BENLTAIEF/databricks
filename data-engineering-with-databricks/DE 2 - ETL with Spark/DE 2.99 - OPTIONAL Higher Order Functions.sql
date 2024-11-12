@@ -65,6 +65,16 @@ WHERE size(king_items) > 0
 
 -- COMMAND ----------
 
+select * from
+(select order_id,
+  items,
+  filter(items, i->i.item_id like "%K") as king_items
+from sales)
+where size(king_items)>2
+;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC ## Transform

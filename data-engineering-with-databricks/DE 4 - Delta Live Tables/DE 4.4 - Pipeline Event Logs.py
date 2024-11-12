@@ -38,6 +38,21 @@ display(event_log)
 
 # COMMAND ----------
 
+event_log_path = f"{DA.paths.storage_location}/checkpoints/status_silver/0/"
+display(dbutils.fs.ls(event_log_path))
+
+#schema_-1014848821_/
+#schema_106151983_/
+#schema_222440764_/
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select *
+# MAGIC from json.`dbfs:/mnt/dbacademy-users/b-benltaief@ad-data-consulting.fr/data-engineering-with-databricks/pipeline_demo/storage_location/autoloader/schema_-1014848821_/_schemas/0`
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Set Latest Update ID
 # MAGIC

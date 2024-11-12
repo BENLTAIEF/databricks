@@ -47,6 +47,16 @@
 
 -- COMMAND ----------
 
+create or replace function sale_announcement(item_name string, item_price int) 
+returns string
+return concat("the ", item_name, " is on sale for $", round(item_price * 0.8, 0));
+
+-- COMMAND ----------
+
+select *, sale_announcement(name, price) as message from item_lookup;
+
+-- COMMAND ----------
+
 CREATE OR REPLACE FUNCTION sale_announcement(item_name STRING, item_price INT)
 RETURNS STRING
 RETURN concat("The ", item_name, " is on sale for $", round(item_price * 0.8, 0));
@@ -105,6 +115,21 @@ RETURN CASE
 END;
 
 SELECT *, item_preference(name, price) FROM item_lookup
+
+-- COMMAND ----------
+
+create or replace function item_preference(name string, price int) returns string
+return
+  case 
+    when name="Standard Queen Mattress" then "This is my default mattress"
+    when name="Premium Queen Mattress" then "This is my favorite mattress"
+    when price > 100 then concat("I'd wait unitl the ", name, " is on sale for $", round(price * 0.8, 0))
+    else concat("I don't need a ", name)
+  end;
+
+-- COMMAND ----------
+
+select *, item_preference(name, price) from item_lookup;
 
 -- COMMAND ----------
 

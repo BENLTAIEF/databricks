@@ -69,6 +69,10 @@
 -- COMMAND ----------
 
 -- <FILL_IN>
+create or replace table events_raw
+(key binary, offset long, partition integer, timestamp long, topic string, value binary)
+--select key, offset, partition, timestamp, topic, value
+--from json.`${DA.paths.kafka_events}`
 
 -- COMMAND ----------
 
@@ -109,6 +113,12 @@
 -- COMMAND ----------
 
 -- <FILL_IN>
+insert into events_raw
+select * from json.`${DA.paths.kafka_events}`
+
+-- COMMAND ----------
+
+describe history events_raw;
 
 -- COMMAND ----------
 
@@ -121,6 +131,7 @@
 -- COMMAND ----------
 
 -- <FILL_IN>
+select * from events_raw;
 
 -- COMMAND ----------
 
@@ -162,7 +173,19 @@
 
 -- COMMAND ----------
 
+-- MAGIC %python
+-- MAGIC display(dbutils.fs.ls(f"{DA.paths.datasets}/ecommerce/raw/item-lookup"))
+
+-- COMMAND ----------
+
 -- <FILL_IN> ${da.paths.datasets}/ecommerce/raw/item-lookup
+create or replace table item_lookup
+select *
+from parquet.`${da.paths.datasets}/ecommerce/raw/item-lookup`
+
+-- COMMAND ----------
+
+describe extended item_lookup;
 
 -- COMMAND ----------
 

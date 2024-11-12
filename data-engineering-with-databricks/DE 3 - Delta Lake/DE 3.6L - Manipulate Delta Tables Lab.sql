@@ -104,7 +104,9 @@ WHEN NOT MATCHED AND b.delicious = true THEN
 
 -- COMMAND ----------
 
--- <FILL-IN>
+-- MAGIC %python
+-- MAGIC df=spark.sql("describe history beans").select("version", "operation")
+-- MAGIC display(df)
 
 -- COMMAND ----------
 
@@ -144,7 +146,7 @@ WHEN NOT MATCHED AND b.delicious = true THEN
 
 -- COMMAND ----------
 
-SELECT * FROM beans VERSION AS OF 1
+SELECT * FROM beans VERSION AS OF 6
 
 -- COMMAND ----------
 
@@ -171,9 +173,17 @@ SELECT * FROM beans
 -- CREATE OR REPLACE TEMP VIEW pre_delete_vw AS
 -- <FILL-IN>
 
+create or replace temp view pre_delete_vw as
+select *
+from beans version as of 4
+
 -- COMMAND ----------
 
 SELECT * FROM pre_delete_vw
+
+-- COMMAND ----------
+
+select * from pre_delete_vw;
 
 -- COMMAND ----------
 
@@ -203,6 +213,7 @@ SELECT * FROM pre_delete_vw
 -- COMMAND ----------
 
 -- <FILL-IN>
+restore table beans version as of 5
 
 -- COMMAND ----------
 
@@ -214,6 +225,10 @@ SELECT * FROM pre_delete_vw
 -- COMMAND ----------
 
 DESCRIBE HISTORY beans
+
+-- COMMAND ----------
+
+describe history beans;
 
 -- COMMAND ----------
 
@@ -237,6 +252,8 @@ DESCRIBE HISTORY beans
 -- COMMAND ----------
 
 -- <FILL-IN>
+optimize beans
+zorder by (name)
 
 -- COMMAND ----------
 
@@ -255,6 +272,10 @@ DESCRIBE DETAIL beans
 -- MAGIC
 -- MAGIC
 -- MAGIC Run the cell below to check that you've successfully optimized and indexed your table.
+
+-- COMMAND ----------
+
+describe history beans
 
 -- COMMAND ----------
 
@@ -361,6 +382,7 @@ SELECT * FROM beans
 -- COMMAND ----------
 
 -- SELECT * FROM beans@v1
+select * from beans@v1
 
 -- COMMAND ----------
 
@@ -380,6 +402,10 @@ SELECT * FROM beans
 -- MAGIC
 -- MAGIC  
 -- MAGIC Run the following cell to delete the tables and files associated with this lesson.
+
+-- COMMAND ----------
+
+describe history beans;
 
 -- COMMAND ----------
 

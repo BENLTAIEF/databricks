@@ -53,6 +53,50 @@
 
 -- COMMAND ----------
 
+create table students(id int, name string, value double);
+
+
+-- COMMAND ----------
+
+insert into students values (1, "yve", 1.0), (2, "Omar", 2.5), (3, "Elia", 3.3);
+
+-- COMMAND ----------
+
+INSERT INTO students
+VALUES 
+  (4, "Ted", 4.7),
+  (5, "Tiffany", 5.5),
+  (6, "Vini", 6.3);
+
+-- COMMAND ----------
+
+update students set value=value+1 where name like 'T%';
+
+-- COMMAND ----------
+
+delete from students where value > 6;
+
+-- COMMAND ----------
+
+create or replace temp view updates(id, name, value, type) as
+values
+(2, "Omar", 15.2, "update")
+,(3, "", null, "delete")
+,(7, "Blue", 7.7, "insert")
+,(11, "Diya", 8.8, "update"); 
+select * from updates;
+
+-- COMMAND ----------
+
+merge into students as a
+using updates as b
+on (b.id = a.id)
+when matched and b.type="update" then update set *
+when matched and b.type="delete" then delete
+when not matched and b.type="insert" then insert *;
+
+-- COMMAND ----------
+
 CREATE TABLE students
   (id INT, name STRING, value DOUBLE);
   
@@ -102,6 +146,10 @@ WHEN NOT MATCHED AND u.type = "insert"
 
 -- COMMAND ----------
 
+describe history students;
+
+-- COMMAND ----------
+
 DESCRIBE EXTENDED students
 
 -- COMMAND ----------
@@ -114,6 +162,14 @@ DESCRIBE EXTENDED students
 -- COMMAND ----------
 
 DESCRIBE DETAIL students
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC df=spark.sql("describe detail students").first().location
+-- MAGIC print(f"{df}/students")
+-- MAGIC display(dbutils.fs.ls(f"{df}"))
+-- MAGIC
 
 -- COMMAND ----------
 
@@ -193,6 +249,11 @@ DESCRIBE DETAIL students
 
 -- COMMAND ----------
 
+select *
+from json.`dbfs:/mnt/dbacademy-users/b-benltaief@ad-data-consulting.fr/data-engineering-with-databricks/database.db/students/_delta_log/*.json`
+
+-- COMMAND ----------
+
 -- MAGIC %python
 -- MAGIC display(spark.sql(f"SELECT * FROM json.`{DA.paths.user_db}/students/_delta_log/00000000000000000007.json`"))
 
@@ -222,6 +283,11 @@ DESCRIBE DETAIL students
 
 -- COMMAND ----------
 
+optimize students
+zorder by id;
+
+-- COMMAND ----------
+
 OPTIMIZE students
 ZORDER BY id
 
@@ -247,6 +313,19 @@ DESCRIBE HISTORY students
 
 -- COMMAND ----------
 
+describe history students;
+
+-- COMMAND ----------
+
+describe detail students;
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC display(dbutils.fs.ls("dbfs:/mnt/dbacademy-users/b-benltaief@ad-data-consulting.fr/data-engineering-with-databricks/database.db/students/_delta_log/"))
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
@@ -260,8 +339,22 @@ DESCRIBE HISTORY students
 
 -- COMMAND ----------
 
+describe history students;
+
+-- COMMAND ----------
+
 SELECT * 
 FROM students VERSION AS OF 3
+
+-- COMMAND ----------
+
+select *
+from students version as of 3
+
+-- COMMAND ----------
+
+select *
+from students version as of 4;
 
 -- COMMAND ----------
 
@@ -294,6 +387,10 @@ DELETE FROM students
 
 -- COMMAND ----------
 
+describe history students;
+
+-- COMMAND ----------
+
 SELECT * FROM students
 
 -- COMMAND ----------
@@ -305,7 +402,7 @@ SELECT * FROM students
 
 -- COMMAND ----------
 
-RESTORE TABLE students TO VERSION AS OF 8
+RESTORE TABLE students TO VERSION AS OF 6
 
 -- COMMAND ----------
 
@@ -333,6 +430,7 @@ RESTORE TABLE students TO VERSION AS OF 8
 -- COMMAND ----------
 
 -- VACUUM students RETAIN 0 HOURS
+vacuum students retain 0 hours
 
 -- COMMAND ----------
 
@@ -355,6 +453,13 @@ VACUUM students RETAIN 0 HOURS DRY RUN
 
 -- COMMAND ----------
 
+set spark.databricks.delta.retentionDurationCheck.enabled=false;
+set spark.databricks.delta.vacuum.logging.enabled=true;
+
+vacuum students retain 0 hours dry run;
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
@@ -366,10 +471,28 @@ VACUUM students RETAIN 0 HOURS
 
 -- COMMAND ----------
 
+vacuum students retain 0 hours
+
+-- COMMAND ----------
+
 -- MAGIC %md
 -- MAGIC
 -- MAGIC
 -- MAGIC Check the table directory to show that files have been successfully deleted.
+
+-- COMMAND ----------
+
+describe history students;
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC display(dbutils.fs.ls("dbfs:/mnt/dbacademy-users/b-benltaief@ad-data-consulting.fr/data-engineering-with-databricks/database.db/students/_delta_log"))
+
+-- COMMAND ----------
+
+select *
+from json.`dbfs:/mnt/dbacademy-users/b-benltaief@ad-data-consulting.fr/data-engineering-with-databricks/database.db/students/_delta_log/*.json`
 
 -- COMMAND ----------
 

@@ -139,6 +139,14 @@ SELECT DISTINCT(*) FROM users_dirty
 
 -- COMMAND ----------
 
+SELECT user_id, user_first_touch_timestamp, max(email) AS email, max(updated) AS updated
+FROM users_dirty
+WHERE user_id IS NOT NULL
+GROUP BY user_id, user_first_touch_timestamp
+order by user_id desc;
+
+-- COMMAND ----------
+
 CREATE OR REPLACE TEMP VIEW deduped_users AS 
 SELECT user_id, user_first_touch_timestamp, max(email) AS email, max(updated) AS updated
 FROM users_dirty
@@ -151,6 +159,21 @@ SELECT count(*) FROM deduped_users
 
 -- MAGIC %python
 -- MAGIC from pyspark.sql.functions import max
+-- MAGIC usersDF = spark.read.table("users_dirty")
+-- MAGIC df_dedupe =(
+-- MAGIC     usersDF.filter("user_id is not null")
+-- MAGIC     .groupBy("user_id", "user_first_touch_timestamp")
+-- MAGIC     .agg(
+-- MAGIC         max("email").alias("email"),
+-- MAGIC         max("updated").alias("updated")
+-- MAGIC     )
+-- MAGIC )
+-- MAGIC display(df_dedupe)
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC from pyspark.sql.functions import max, col
 -- MAGIC dedupedDF = (usersDF
 -- MAGIC     .where(col("user_id").isNotNull())
 -- MAGIC     .groupBy("user_id", "user_first_touch_timestamp")
@@ -168,6 +191,24 @@ SELECT count(*) FROM deduped_users
 
 -- COMMAND ----------
 
+select count(distinct(user_id, user_first_touch_timestamp)) as countdistinct,
+  count(user_id, user_first_touch_timestamp) as count,
+  count(user_id, user_first_touch_timestamp) -
+  count(distinct(user_id, user_first_touch_timestamp))  as diff
+from users_dirty
+where user_id is not null;
+
+-- COMMAND ----------
+
+select count(distinct(user_id)) as countdistinct,
+  count(user_id) as count,
+  count(user_id) -
+  count(distinct(user_id))  as diff
+from users_dirty
+where user_id is not null;
+
+-- COMMAND ----------
+
 SELECT COUNT(DISTINCT(user_id, user_first_touch_timestamp))
 FROM users_dirty
 WHERE user_id IS NOT NULL
@@ -175,10 +216,24 @@ WHERE user_id IS NOT NULL
 -- COMMAND ----------
 
 -- MAGIC %python
--- MAGIC (usersDF
+-- MAGIC (
+-- MAGIC     usersDF.dropDuplicates(["user_id", "user_first_touch_timestamp"])
+-- MAGIC     .filter(col("user_id").isNotNull())
+-- MAGIC     .count()
+-- MAGIC )
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC df= (usersDF
 -- MAGIC     .dropDuplicates(["user_id", "user_first_touch_timestamp"])
 -- MAGIC     .filter(col("user_id").isNotNull())
--- MAGIC     .count())
+-- MAGIC      )
+-- MAGIC df.write.saveAsTable("user_dirty2")
+
+-- COMMAND ----------
+
+select * from user_dirty2
 
 -- COMMAND ----------
 
@@ -193,10 +248,29 @@ WHERE user_id IS NOT NULL
 
 -- COMMAND ----------
 
+select case when exists(
+select user_id, user_first_touch_timestamp, count(*)
+from user_dirty2
+group by user_id, user_first_touch_timestamp
+having count(*) >1) then 'false' else 'true' end no_duplicate_ids
+;
+
+-- COMMAND ----------
+
 SELECT max(row_count) <= 1 no_duplicate_ids FROM (
   SELECT user_id, count(*) AS row_count
   FROM deduped_users
   GROUP BY user_id)
+
+-- COMMAND ----------
+
+-- MAGIC %python 
+-- MAGIC from pyspark.sql.functions import count
+-- MAGIC display(
+-- MAGIC     dedupedDF.groupBy("user_id")
+-- MAGIC     .agg(count("*").alias("row_count"))
+-- MAGIC     .select((max("row_count")<=1).alias("no_duplicates_ids"))
+-- MAGIC )
 
 -- COMMAND ----------
 
@@ -218,11 +292,30 @@ SELECT max(row_count) <= 1 no_duplicate_ids FROM (
 
 -- COMMAND ----------
 
+select case when exists(
+  select email, count(user_id)
+  from deduped_users
+  where email is not null
+  group by email
+) then "true" else "false" end at_most_one_id
+
+-- COMMAND ----------
+
 SELECT max(user_id_count) <= 1 at_most_one_id FROM (
   SELECT email, count(user_id) AS user_id_count
   FROM deduped_users
   WHERE email IS NOT NULL
   GROUP BY email)
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC display(
+-- MAGIC     dedupedDF.where(col("email").isNotNull())
+-- MAGIC     .groupBy("email")
+-- MAGIC     .agg(count("user_id").alias("user_id_count"))
+-- MAGIC     .select((max("user_id_count") <=1).alias("at_most_one_id"))
+-- MAGIC )
 
 -- COMMAND ----------
 

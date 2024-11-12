@@ -58,19 +58,19 @@
 -- COMMAND ----------
 
 -- TODO
-CREATE OR REFRESH STREAMING TABLE status_bronze
+CREATE OR REFRESH STREAMING live TABLE status_bronze
 AS SELECT current_timestamp() processing_time, input_file_name() source_file, *
 FROM cloud_files("${source}/status", "json");
 
 CREATE OR REFRESH STREAMING LIVE TABLE status_silver
 (CONSTRAINT valid_timestamp EXPECT (status_timestamp > 1640995200) ON VIOLATION DROP ROW)
 AS SELECT * EXCEPT (source_file, _rescued_data)
-FROM LIVE.status_bronze;
+FROM stream(LIVE.status_bronze);
 
 CREATE OR REFRESH LIVE TABLE email_updates
 AS SELECT a.*, b.email
-FROM status_silver a
-INNER JOIN subscribed_order_emails_v b
+FROM live.status_silver a
+INNER JOIN live.subscribed_order_emails_v b
 ON a.order_id = b.order_id;
 
 -- COMMAND ----------

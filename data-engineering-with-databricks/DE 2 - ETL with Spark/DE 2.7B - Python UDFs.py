@@ -51,6 +51,11 @@ display(sales_df)
 
 # COMMAND ----------
 
+sales_df=spark.table("sales")
+display(sales_df)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC
 # MAGIC ### Define a function
@@ -66,6 +71,13 @@ first_letter_function("annagray@kaufman.com")
 
 # COMMAND ----------
 
+def first_letter_fun(email):
+    return email[0]
+
+first_letter_fun("bechir.benltaief@gmail.com")
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC
 # MAGIC ### Create and apply UDF
@@ -74,6 +86,10 @@ first_letter_function("annagray@kaufman.com")
 # COMMAND ----------
 
 first_letter_udf = udf(first_letter_function)
+
+# COMMAND ----------
+
+first_letter_udf=udf(first_letter_fun)
 
 # COMMAND ----------
 
@@ -86,6 +102,11 @@ first_letter_udf = udf(first_letter_function)
 from pyspark.sql.functions import col
 
 display(sales_df.select(first_letter_udf(col("email"))))
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col
+display(sales_df.withColumn("first_letter_email", first_letter_udf(col("email"))))
 
 # COMMAND ----------
 
@@ -108,6 +129,12 @@ def first_letter_udf(email: str) -> str:
 
 # COMMAND ----------
 
+@udf("string")
+def first_letter_deco(email: str)->str:
+    return email[0].upper()
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC
 # MAGIC And let's use our decorator UDF here.
@@ -118,6 +145,11 @@ from pyspark.sql.functions import col
 
 sales_df = spark.table("sales")
 display(sales_df.select(first_letter_udf(col("email"))))
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col
+display(spark.table("sales").withColumn("first_letter_deco", first_letter_deco(col("email"))))
 
 # COMMAND ----------
 
